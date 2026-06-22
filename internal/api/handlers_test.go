@@ -26,6 +26,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/testcontainers/testcontainers-go"
 	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 
@@ -40,8 +41,7 @@ func TestEncryptDecryptRoundTrip(t *testing.T) {
 	pg, err := tcpostgres.Run(ctx, "postgres:16-alpine",
 		tcpostgres.WithDatabase("cryptoguard"),
 		tcpostgres.WithUsername("cryptoguard"),
-		tcpostgres.WithPassword("cryptoguard"),
-		testcontainers.WithWaitStrategy(
+		tcpostgres.WithPassword("cryptoguard"), testcontainers.WithWaitStrategy(
 			wait.ForLog("database system is ready to accept connections").
 				WithOccurrence(2).WithStartupTimeout(60*time.Second)),
 	)

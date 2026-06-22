@@ -1,2 +1,5 @@
-
+/bin/
+/data/
+.env
+*.tmp
 .idea/

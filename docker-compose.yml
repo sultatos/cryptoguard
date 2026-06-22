@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: cryptoguard
+      POSTGRES_PASSWORD: cryptoguard
+      POSTGRES_DB: cryptoguard
+    # Migrations in /docker-entrypoint-initdb.d run once on first init.
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./migrations/0001_init.sql:/docker-entrypoint-initdb.d/0001_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cryptoguard -d cryptoguard"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    ports:
+      - "5432:5432"
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # MASTER_KEY is read from your .env file (see .env.example). Never commit it.
+      MASTER_KEY: ${MASTER_KEY}
+      DATABASE_URL: postgres://cryptoguard:cryptoguard@db:5432/cryptoguard?sslmode=disable
+      STORAGE_DIR: /app/data/blobs
+      LISTEN_ADDR: ":8080"
+    volumes:
+      - blobs:/app/data
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:
+  blobs:
