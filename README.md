@@ -46,3 +46,54 @@ Each chunk's 12-byte nonce is `prefix(7) || counter(4, big-endian) || final-flag
 
 Both directions stream with two chunk buffers at most; memory is flat regardless
 of file size.
+---
+## Development
+
+```bash
+make test              # unit tests (incl. the crypto suite) with -race
+make test-integration  # full HTTP round trip via testcontainers (needs Docker)
+make generate          # regenerate sqlc code after editing queries.sql
+make lint              # golangci-lint
+make key               # print a fresh MASTER_KEY
+```
+
+**sqlc:** queries live in `internal/repository/queries.sql`; `sqlc generate`
+writes the type-safe `internal/repository/db` package (committed). The
+`uuid`/`timestamptz` overrides in `sqlc.yaml` keep generated models on plain
+`uuid.UUID`/`time.Time`; the google/uuid pgx codec is registered per-connection
+in `internal/repository/pool.go`.
+
+---
+
+## Project layout
+
+```
+internal/config/      env parsing + MASTER_KEY validation (fail-fast)
+internal/crypto/      envelope (wrap/unwrap) + chunked streaming AEAD  ← pure, unit-tested
+internal/storage/     filesystem blob store (atomic temp→fsync→rename)
+internal/repository/  pgx pool + sqlc-backed metadata access
+migrations/           schema (also sqlc's schema source)
+```
+
+Dependency direction: `api → service → {crypto, storage, repository}`. The crypto
+package imports nothing from the rest, so its security properties are tested in
+isolation.
+
+---
+
+## Design decisions & trade-offs
+
+- **AES-256-GCM, chunked.** Required AEAD; chunking is the only safe way to stream
+  it. A production system could instead use a vetted streaming AEAD (Google Tink,
+  `filippo.io/age`); the framing here is implemented directly to make the
+  mechanics explicit.
+- **64 KiB chunks.** Balances per-chunk tag overhead (16 B) against memory and
+  latency. Tunable.
+- **Consistency.** Invariant: *a DB row exists ⇒ its blob exists*. The blob is
+  written and `fsync`ed and atomically renamed before the row is inserted; a
+  failed insert removes the blob. The only possible leak is an orphan blob with
+  no row, which is safe to garbage-collect.
+- **Path traversal.** `file_id` is parsed as a UUID before it is ever used to
+  build a filesystem path.
+
+---

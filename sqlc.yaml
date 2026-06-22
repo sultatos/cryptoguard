@@ -1,0 +1,19 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    schema: "migrations"                       # reads CREATE TABLE statements here
+    queries: "internal/repository/queries.sql"
+    gen:
+      go:
+        package: "db"
+        out: "internal/repository/db"
+        sql_package: "pgx/v5"                   # generate against pgx, not database/sql
+        emit_json_tags: false
+        emit_interface: true                    # generates a Querier interface -> easy to mock in tests
+        # Overrides keep the generated model free of pgtype.* so the service layer
+        # works with plain uuid.UUID / time.Time and nothing pgx-specific leaks upward.
+        overrides:
+          - db_type: "uuid"
+            go_type: "github.com/google/uuid.UUID"
+          - db_type: "timestamptz"
+            go_type: "time.Time"
