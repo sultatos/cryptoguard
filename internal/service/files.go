@@ -103,9 +103,9 @@ func (s *FileService) OpenForDecrypt(ctx context.Context, id uuid.UUID) (*Decryp
 	return &DecryptStreamer{OriginalName: meta.OriginalFilename, dek: dek, blob: blob}, nil
 }
 
-// WriteTo streams the decrypted plaintext to w. Each chunk is authenticated
+// Stream streams the decrypted plaintext to w. Each chunk is authenticated
 // before its bytes are written.
-func (d *DecryptStreamer) WriteTo(w io.Writer) error {
+func (d *DecryptStreamer) Stream(w io.Writer) error {
 	return crypto.DecryptStream(d.dek, d.blob, w)
 }
 

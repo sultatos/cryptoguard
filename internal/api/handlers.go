@@ -91,7 +91,7 @@ func (h *Handlers) DecryptFile(w http.ResponseWriter, r *http.Request) {
 	// Headers/200 are committed once the body starts. If a later chunk fails
 	// authentication we can only log and drop the connection — we cannot change
 	// the status code. This is inherent to streaming an authenticated download.
-	if err := ds.WriteTo(w); err != nil {
+	if err := ds.Stream(w); err != nil {
 		h.logger.Error("stream decrypt failed mid-body", "err", err, "file_id", id)
 	}
 }
