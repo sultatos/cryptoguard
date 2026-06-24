@@ -46,7 +46,7 @@ func (h *Handlers) EncryptFile(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "no file field in form")
 		return
 	}
-	defer part.Close()
+	defer func() { _ = part.Close() }()
 
 	res, err := h.svc.Encrypt(r.Context(), part.FileName(), part)
 	if err != nil {
@@ -83,7 +83,7 @@ func (h *Handlers) DecryptFile(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "decryption failed")
 		return
 	}
-	defer ds.Close()
+	defer func() { _ = ds.Close() }()
 
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", contentDisposition(ds.OriginalName))
